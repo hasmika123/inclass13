@@ -115,36 +115,39 @@ class _SignupScreenState extends State<SignupScreen> {
                 const SizedBox(height: 30),
                 Text('Choose your avatar:', style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(_avatarIcons.length, (index) {
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _selectedAvatar = index;
-                        });
-                      },
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 8),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: _selectedAvatar == index ? Colors.deepPurple : Colors.transparent,
-                            width: 3,
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(_avatarIcons.length, (index) {
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedAvatar = index;
+                          });
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 8),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: _selectedAvatar == index ? Colors.deepPurple : Colors.transparent,
+                              width: 3,
+                            ),
+                          ),
+                          child: CircleAvatar(
+                            radius: 28,
+                            backgroundColor: Colors.deepPurple[50],
+                            child: Icon(
+                              _avatarIcons[index],
+                              size: 32,
+                              color: Colors.deepPurple,
+                            ),
                           ),
                         ),
-                        child: CircleAvatar(
-                          radius: 28,
-                          backgroundColor: Colors.deepPurple[50],
-                          child: Icon(
-                            _avatarIcons[index],
-                            size: 32,
-                            color: Colors.deepPurple,
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
+                      );
+                    }),
+                  ),
                 ),
                 const SizedBox(height: 30),
                 _buildTextField(
@@ -235,7 +238,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 const SizedBox(height: 30),
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
-                  width: _isLoading ? 60 : double.infinity,
+                  width: _isLoading ? 60 : MediaQuery.of(context).size.width,
                   height: 60,
                   child: _isLoading
                       ? const Center(
@@ -253,16 +256,20 @@ class _SignupScreenState extends State<SignupScreen> {
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             elevation: 5,
                           ),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                'Start My Adventure',
-                                style: TextStyle(fontSize: 18, color: Colors.white),
-                              ),
-                              SizedBox(width: 10),
-                              Icon(Icons.rocket_launch, color: Colors.white),
-                            ],
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
+                              children: const [
+                                Text(
+                                  'Start My Adventure',
+                                  style: TextStyle(fontSize: 18, color: Colors.white),
+                                ),
+                                SizedBox(width: 10),
+                                Icon(Icons.rocket_launch, color: Colors.white),
+                              ],
+                            ),
                           ),
                         ),
                 ),
