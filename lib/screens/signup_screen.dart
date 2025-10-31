@@ -89,6 +89,12 @@ class _SignupScreenState extends State<SignupScreen> {
             builder: (context) => SuccessScreen(
               userName: _nameController.text,
               avatarIndex: _selectedAvatar,
+              isStrongPassword: _passwordStrength >= 0.75,
+              isEarlyBird: DateTime.now().hour < 12,
+              isProfileComplete: _nameController.text.isNotEmpty &&
+                                _emailController.text.isNotEmpty &&
+                                _passwordController.text.isNotEmpty &&
+                                _dobController.text.isNotEmpty,
             ),
           ),
         );

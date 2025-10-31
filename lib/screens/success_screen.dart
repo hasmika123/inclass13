@@ -1,12 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:confetti/confetti.dart';
+import 'package:inclass13/screens/_badge_data.dart';
 
 class SuccessScreen extends StatefulWidget {
   final String userName;
   final int avatarIndex;
+  final bool isStrongPassword;
+  final bool isEarlyBird;
+  final bool isProfileComplete;
 
-  const SuccessScreen({Key? key, required this.userName, required this.avatarIndex}) : super(key: key);
+  const SuccessScreen({
+    Key? key,
+    required this.userName,
+    required this.avatarIndex,
+    this.isStrongPassword = false,
+    this.isEarlyBird = false,
+    this.isProfileComplete = false,
+  }) : super(key: key);
 
   @override
   State<SuccessScreen> createState() => _SuccessScreenState();
@@ -21,6 +32,35 @@ class _SuccessScreenState extends State<SuccessScreen> {
     Icons.android,
     Icons.catching_pokemon,
   ];
+
+  final List<BadgeData> _badges = [];
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _badges.clear();
+    if (widget.isStrongPassword) {
+      _badges.add(BadgeData(
+        icon: Icons.security,
+        label: 'Strong Password Master',
+        color: Colors.green,
+      ));
+    }
+    if (widget.isEarlyBird) {
+      _badges.add(BadgeData(
+        icon: Icons.wb_sunny,
+        label: 'Early Bird Special',
+        color: Colors.orange,
+      ));
+    }
+    if (widget.isProfileComplete) {
+      _badges.add(BadgeData(
+        icon: Icons.verified,
+        label: 'Profile Completer',
+        color: Colors.blue,
+      ));
+    }
+  }
 
   @override
   void initState() {
@@ -100,6 +140,32 @@ class _SuccessScreenState extends State<SuccessScreen> {
                     ],
                     totalRepeatCount: 1,
                   ),
+                  if (_badges.isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    Text('Achievements:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.deepPurple)),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: _badges.map((badge) => Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        child: Column(
+                          children: [
+                            CircleAvatar(
+                              backgroundColor: badge.color.withOpacity(0.2),
+                              child: Icon(badge.icon, color: badge.color, size: 28),
+                              radius: 24,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              badge.label,
+                              style: TextStyle(fontSize: 12, color: badge.color, fontWeight: FontWeight.w600),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      )).toList(),
+                    ),
+                  ],
                   const SizedBox(height: 20),
                   const Text(
                     'Your adventure begins now!',
