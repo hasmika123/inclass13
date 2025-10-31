@@ -15,6 +15,29 @@ class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _dobController = TextEditingController();
   bool _isPasswordVisible = false;
+  double _passwordStrength = 0.0;
+  Color get _passwordStrengthColor {
+    if (_passwordStrength <= 0.25) return Colors.red;
+    if (_passwordStrength <= 0.5) return Colors.orange;
+    if (_passwordStrength <= 0.75) return Colors.yellow;
+    return Colors.green;
+  }
+  String get _passwordStrengthLabel {
+    if (_passwordStrength <= 0.25) return 'Weak';
+    if (_passwordStrength <= 0.5) return 'Fair';
+    if (_passwordStrength <= 0.75) return 'Good';
+    return 'Strong';
+  }
+  void _checkPasswordStrength(String password) {
+    double strength = 0.0;
+    if (password.length >= 8) strength += 0.25;
+    if (RegExp(r'[A-Z]').hasMatch(password)) strength += 0.25;
+    if (RegExp(r'[0-9]').hasMatch(password)) strength += 0.25;
+    if (RegExp(r'[!@#\$&*~]').hasMatch(password)) strength += 0.25;
+    setState(() {
+      _passwordStrength = strength;
+    });
+  }
   bool _isLoading = false;
   int _selectedAvatar = 0;
 
@@ -225,6 +248,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       },
                     ),
                   ),
+                  onChanged: _checkPasswordStrength,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Every adventurer needs a secret password!';
@@ -234,6 +258,28 @@ class _SignupScreenState extends State<SignupScreen> {
                     }
                     return null;
                   },
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      LinearProgressIndicator(
+                        value: _passwordStrength,
+                        minHeight: 8,
+                        backgroundColor: Colors.grey[300],
+                        valueColor: AlwaysStoppedAnimation<Color>(_passwordStrengthColor),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Strength: ${_passwordStrengthLabel}',
+                        style: TextStyle(
+                          color: _passwordStrengthColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 30),
                 AnimatedContainer(
