@@ -1,6 +1,124 @@
 import 'package:flutter/material.dart';
 import 'success_screen.dart';
 
+class ProgressTracker extends StatefulWidget {
+  final bool nameFilled;
+  final bool emailFilled;
+  final bool passwordFilled;
+  final bool dobFilled;
+  const ProgressTracker({
+    Key? key,
+    required this.nameFilled,
+    required this.emailFilled,
+    required this.passwordFilled,
+    required this.dobFilled,
+  }) : super(key: key);
+  @override
+  State<ProgressTracker> createState() => _ProgressTrackerState();
+}
+
+class _ProgressTrackerState extends State<ProgressTracker> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  String _message = '';
+  @override
+  void initState() {
+    super.initState();
+  _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updateProgress());
+  }
+  @override
+  void didUpdateWidget(covariant ProgressTracker oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _updateProgress();
+  }
+  void _updateProgress() {
+    int filled = [widget.nameFilled, widget.emailFilled, widget.passwordFilled, widget.dobFilled].where((f) => f).length;
+    double percent = filled / 4.0;
+    String msg = '';
+    if (percent >= 1.0) msg = 'Ready for adventure!';
+    else if (percent >= 0.75) msg = 'Almost done!';
+    else if (percent >= 0.5) msg = 'Halfway there!';
+    else if (percent >= 0.25) msg = 'Great start!';
+    setState(() {
+      _message = msg;
+    });
+    _controller.animateTo(percent, curve: Curves.easeOut);
+  }
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: AnimatedBuilder(
+                animation: _controller,
+                builder: (context, child) {
+                  return LinearProgressIndicator(
+                    value: _controller.value,
+                    minHeight: 12,
+                    backgroundColor: Colors.grey[300],
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      _controller.value >= 1.0 ? Colors.green : Colors.deepPurple,
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              '${(_controller.value * 100).round()}%',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: _controller.value >= 1.0 ? Colors.green : Colors.deepPurple,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 400),
+          child: Text(
+            _message,
+            key: ValueKey(_message),
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: _controller.value >= 1.0 ? Colors.green : Colors.deepPurple,
+            ),
+          ),
+        ),
+        if (_controller.value >= 0.25 && _controller.value < 0.5)
+          _CelebrationIcon(icon: Icons.star, color: Colors.amber),
+        if (_controller.value >= 0.5 && _controller.value < 0.75)
+          _CelebrationIcon(icon: Icons.emoji_events, color: Colors.orange),
+        if (_controller.value >= 0.75 && _controller.value < 1.0)
+          _CelebrationIcon(icon: Icons.rocket_launch, color: Colors.blue),
+        if (_controller.value >= 1.0)
+          _CelebrationIcon(icon: Icons.cake, color: Colors.green),
+      ],
+    );
+  }
+}
+
+class _CelebrationIcon extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  const _CelebrationIcon({required this.icon, required this.color});
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Icon(icon, color: color, size: 32),
+    );
+  }
+}
+
 class SignupScreen extends StatefulWidget {
   const SignupScreen({Key? key}) : super(key: key);
 
@@ -117,6 +235,13 @@ class _SignupScreenState extends State<SignupScreen> {
             key: _formKey,
             child: Column(
               children: [
+                ProgressTracker(
+                  nameFilled: _nameController.text.isNotEmpty,
+                  emailFilled: _emailController.text.isNotEmpty,
+                  passwordFilled: _passwordController.text.isNotEmpty,
+                  dobFilled: _dobController.text.isNotEmpty,
+                ),
+                const SizedBox(height: 24),
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 500),
                   curve: Curves.easeInOut,
@@ -189,6 +314,9 @@ class _SignupScreenState extends State<SignupScreen> {
                     }
                     return null;
                   },
+                  onChanged: (value) {
+                    setState(() {});
+                  },
                 ),
                 const SizedBox(height: 20),
                 _buildTextField(
@@ -203,6 +331,9 @@ class _SignupScreenState extends State<SignupScreen> {
                       return 'Oops! That doesn\'t look like a valid email';
                     }
                     return null;
+                  },
+                  onChanged: (value) {
+                    setState(() {});
                   },
                 ),
                 const SizedBox(height: 20),
@@ -338,6 +469,7 @@ class _SignupScreenState extends State<SignupScreen> {
     required String label,
     required IconData icon,
     required String? Function(String?) validator,
+    void Function(String)? onChanged,
   }) {
     return TextFormField(
       controller: controller,
@@ -351,6 +483,7 @@ class _SignupScreenState extends State<SignupScreen> {
         fillColor: Colors.grey[50],
       ),
       validator: validator,
+      onChanged: onChanged,
     );
   }
 }
