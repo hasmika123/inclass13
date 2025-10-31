@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:math';
 import 'success_screen.dart';
 
 class ProgressTracker extends StatefulWidget {
@@ -126,14 +127,37 @@ class SignupScreen extends StatefulWidget {
   State<SignupScreen> createState() => _SignupScreenState();
 }
 
-class _SignupScreenState extends State<SignupScreen> {
+class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMixin {
+  int _currentStep = 0;
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _dobController = TextEditingController();
+  final FocusNode _nameFocusNode = FocusNode();
+  final FocusNode _emailFocusNode = FocusNode();
+  final FocusNode _dobFocusNode = FocusNode();
+  final FocusNode _passwordFocusNode = FocusNode();
+  late AnimationController _nameShakeController;
+  late Animation<double> _nameShakeAnimation;
+  late AnimationController _emailShakeController;
+  late Animation<double> _emailShakeAnimation;
+  String? _nameErrorTooltip;
+  String? _emailErrorTooltip;
   bool _isPasswordVisible = false;
   double _passwordStrength = 0.0;
+  void _goToNextStep() {
+    setState(() {
+      _currentStep++;
+    });
+    if (_currentStep == 1) {
+      FocusScope.of(context).requestFocus(_emailFocusNode);
+    } else if (_currentStep == 2) {
+      FocusScope.of(context).requestFocus(_dobFocusNode);
+    } else if (_currentStep == 3) {
+      FocusScope.of(context).requestFocus(_passwordFocusNode);
+    }
+  }
   Color get _passwordStrengthColor {
     if (_passwordStrength <= 0.25) return Colors.red;
     if (_passwordStrength <= 0.5) return Colors.orange;
@@ -168,12 +192,81 @@ class _SignupScreenState extends State<SignupScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _nameShakeController = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+    _nameShakeAnimation = Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(parent: _nameShakeController, curve: Curves.elasticIn));
+    _emailShakeController = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+    _emailShakeAnimation = Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(parent: _emailShakeController, curve: Curves.elasticIn));
+    _nameFocusNode.addListener(() {
+      if (!_nameFocusNode.hasFocus) {
+        final error = _validateName(_nameController.text);
+        if (error != null) {
+          setState(() { _nameErrorTooltip = error; });
+          _nameShakeController.forward(from: 0);
+        } else {
+          setState(() { _nameErrorTooltip = null; });
+          if (_currentStep == 0) _goToNextStep();
+        }
+      }
+    });
+    _emailFocusNode.addListener(() {
+      if (!_emailFocusNode.hasFocus) {
+        final error = _validateEmail(_emailController.text);
+        if (error != null) {
+          setState(() { _emailErrorTooltip = error; });
+          _emailShakeController.forward(from: 0);
+        } else {
+          setState(() { _emailErrorTooltip = null; });
+          if (_currentStep == 1) _goToNextStep();
+        }
+      }
+    });
+    _dobFocusNode.addListener(() {
+      if (!_dobFocusNode.hasFocus) {
+        if (_dobController.text.isNotEmpty) {
+          if (_currentStep == 2) _goToNextStep();
+        }
+      }
+    });
+    _passwordFocusNode.addListener(() {
+      if (!_passwordFocusNode.hasFocus) {
+        if (_passwordController.text.isNotEmpty && _passwordController.text.length >= 6) {
+          if (_currentStep == 3) _goToNextStep();
+        }
+      }
+    });
+  }
+
+  @override
   void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
-    _dobController.dispose();
-    super.dispose();
+  _nameController.dispose();
+  _emailController.dispose();
+  _passwordController.dispose();
+  _dobController.dispose();
+  _nameFocusNode.dispose();
+  _emailFocusNode.dispose();
+  _dobFocusNode.dispose();
+  _passwordFocusNode.dispose();
+  _nameShakeController.dispose();
+  _emailShakeController.dispose();
+  super.dispose();
+  }
+
+  String? _validateName(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'What should we call you on this adventure?';
+    }
+    return null;
+  }
+  String? _validateEmail(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'We need your email for adventure updates!';
+    }
+    if (!value.contains('@') || !value.contains('.')) {
+      return 'Oops! That doesn\'t look like a valid email';
+    }
+    return null;
   }
 
   Future<void> _selectDate() async {
@@ -304,41 +397,89 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                 ),
                 const SizedBox(height: 30),
-                _buildTextField(
-                  controller: _nameController,
-                  label: 'Adventure Name',
-                  icon: Icons.person,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'What should we call you on this adventure?';
-                    }
-                    return null;
-                  },
-                  onChanged: (value) {
-                    setState(() {});
+                AnimatedBuilder(
+                  animation: _nameShakeController,
+                  builder: (context, child) {
+                    double shake = _nameShakeAnimation.value;
+                    double offsetX = _nameErrorTooltip != null
+                        ? (sin(shake * 6.0) * (1.0 - shake) * 16)
+                        : 0.0;
+                    return Transform.translate(
+                      offset: Offset(offsetX, 0),
+                      child: Stack(
+                        children: [
+                          _buildTextField(
+                            controller: _nameController,
+                            label: 'Adventure Name',
+                            icon: Icons.person,
+                            validator: _validateName,
+                            onChanged: (value) {
+                              setState(() {});
+                              if (_nameErrorTooltip != null && _validateName(value) == null) {
+                                _nameShakeController.reset();
+                              }
+                            },
+                            focusNode: _nameFocusNode,
+                            highlight: _currentStep == 0,
+                          ),
+                          if (_nameErrorTooltip != null)
+                            Positioned(
+                              right: 0,
+                              top: 0,
+                              child: Tooltip(
+                                message: _nameErrorTooltip!,
+                                child: Icon(Icons.error, color: Colors.red),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
                   },
                 ),
                 const SizedBox(height: 20),
-                _buildTextField(
-                  controller: _emailController,
-                  label: 'Email Address',
-                  icon: Icons.email,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'We need your email for adventure updates!';
-                    }
-                    if (!value.contains('@') || !value.contains('.')) {
-                      return 'Oops! That doesn\'t look like a valid email';
-                    }
-                    return null;
-                  },
-                  onChanged: (value) {
-                    setState(() {});
+                AnimatedBuilder(
+                  animation: _emailShakeController,
+                  builder: (context, child) {
+                    double shake = _emailShakeAnimation.value;
+                    double offsetX = _emailErrorTooltip != null
+                        ? (sin(shake * 6.0) * (1.0 - shake) * 16)
+                        : 0.0;
+                    return Transform.translate(
+                      offset: Offset(offsetX, 0),
+                      child: Stack(
+                        children: [
+                          _buildTextField(
+                            controller: _emailController,
+                            label: 'Email Address',
+                            icon: Icons.email,
+                            validator: _validateEmail,
+                            onChanged: (value) {
+                              setState(() {});
+                              if (_emailErrorTooltip != null && _validateEmail(value) == null) {
+                                _emailShakeController.reset();
+                              }
+                            },
+                            focusNode: _emailFocusNode,
+                            highlight: _currentStep == 1,
+                          ),
+                          if (_emailErrorTooltip != null)
+                            Positioned(
+                              right: 0,
+                              top: 0,
+                              child: Tooltip(
+                                message: _emailErrorTooltip!,
+                                child: Icon(Icons.error, color: Colors.red),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
                   },
                 ),
                 const SizedBox(height: 20),
                 TextFormField(
                   controller: _dobController,
+                  focusNode: _dobFocusNode,
                   readOnly: true,
                   onTap: _selectDate,
                   decoration: InputDecoration(
@@ -346,9 +487,13 @@ class _SignupScreenState extends State<SignupScreen> {
                     prefixIcon: const Icon(Icons.calendar_today, color: Colors.deepPurple),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: _currentStep == 2 ? Colors.orange : Colors.grey,
+                        width: _currentStep == 2 ? 2 : 1,
+                      ),
                     ),
                     filled: true,
-                    fillColor: Colors.grey[50],
+                    fillColor: _currentStep == 2 ? Colors.orange[50] : Colors.grey[50],
                     suffixIcon: IconButton(
                       icon: const Icon(Icons.date_range),
                       onPressed: _selectDate,
@@ -364,15 +509,20 @@ class _SignupScreenState extends State<SignupScreen> {
                 const SizedBox(height: 20),
                 TextFormField(
                   controller: _passwordController,
+                  focusNode: _passwordFocusNode,
                   obscureText: !_isPasswordVisible,
                   decoration: InputDecoration(
                     labelText: 'Secret Password',
                     prefixIcon: const Icon(Icons.lock, color: Colors.deepPurple),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: _currentStep == 3 ? Colors.orange : Colors.grey,
+                        width: _currentStep == 3 ? 2 : 1,
+                      ),
                     ),
                     filled: true,
-                    fillColor: Colors.grey[50],
+                    fillColor: _currentStep == 3 ? Colors.orange[50] : Colors.grey[50],
                     suffixIcon: IconButton(
                       icon: Icon(
                         _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
@@ -470,17 +620,24 @@ class _SignupScreenState extends State<SignupScreen> {
     required IconData icon,
     required String? Function(String?) validator,
     void Function(String)? onChanged,
+    FocusNode? focusNode,
+    bool highlight = false,
   }) {
     return TextFormField(
       controller: controller,
+      focusNode: focusNode,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon, color: Colors.deepPurple),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: highlight ? Colors.orange : Colors.grey,
+            width: highlight ? 2 : 1,
+          ),
         ),
         filled: true,
-        fillColor: Colors.grey[50],
+        fillColor: highlight ? Colors.orange[50] : Colors.grey[50],
       ),
       validator: validator,
       onChanged: onChanged,
